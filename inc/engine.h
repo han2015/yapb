@@ -869,6 +869,10 @@ public:
 // (UTIL_Remove), so we must NOT key this on the live edict_t* (it dangles / may be
 // reused). instead we store the detonation position together with the game time it
 // was deployed, and expire entries once the smoke has dissipated.
+
+// expose game global early so SGDetonateTrack inline methods can reference game.time()
+CR_EXPOSE_GLOBAL_SINGLETON (Game, game);
+
 class SGDetonateTrack final : public Singleton <SGDetonateTrack> {
 public:
    struct Entry {
@@ -919,7 +923,6 @@ public:
 };
 
 // expose globals
-CR_EXPOSE_GLOBAL_SINGLETON (Game, game);
 CR_EXPOSE_GLOBAL_SINGLETON (GameState, gameState);
 CR_EXPOSE_GLOBAL_SINGLETON (LightMeasure, illum);
 CR_EXPOSE_GLOBAL_SINGLETON (SGDetonateTrack, sgtrack);
