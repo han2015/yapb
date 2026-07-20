@@ -864,9 +864,20 @@ public:
 };
 
 // sg detonation tracking
+//
+// note: the smokegrenade.mdl entity is removed by the game right after detonation
+// (UTIL_Remove), so we must NOT key this on the live edict_t* (it dangles / may be
+// reused). instead we store the detonation position together with the game time it
+// was deployed, and expire entries once the smoke has dissipated.
 class SGDetonateTrack final : public Singleton <SGDetonateTrack> {
+public:
+   struct Entry {
+      Vector pos;   // smoke cloud detonation position
+      float time;   // game time when the smoke was deployed
+   };
+
 private:
-   HashMap <edict_t *, Vector> m_positions {};
+   Array <Entry> m_positions {};
 
 public:
    SGDetonateTrack () = default;
@@ -874,15 +885,32 @@ public:
 
 public:
    void acquire (edict_t *ent, const Vector &pos) {
-      m_positions[ent] = pos;
+      (void)ent; // entity is removed after detonation; we only care about the position
+
+      // drop already-dissipated clouds so the array stays bounded (important on
+      // long deathmatch rounds where many smokes may be deployed over time)
+      purge ();
+
+      m_positions.push (Entry { pos, game.time () });
    }
 
-   const Vector &find (edict_t *ent) {
-      return m_positions[ent];
+   // remove smoke clouds that have fully dissipated (older than their lifetime)
+   void purge () {
+      const float now = game.time ();
+
+      for (int i = static_cast <int> (m_positions.length ()) - 1; i >= 0; --i) {
+         if (now - m_positions[i].time > kSmokeGrenadeLifeTime) {
+            m_positions.erase (i, 1);
+         }
+      }
    }
 
-   bool has (edict_t *ent) const {
-      return m_positions.exists (ent);
+   bool empty () const {
+      return m_positions.empty ();
+   }
+
+   const Array <Entry> &get () const {
+      return m_positions;
    }
 
    void clear () {

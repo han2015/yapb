@@ -1904,6 +1904,8 @@ void GameState::updateActiveGrenade () {
    if (m_activeGrenadesUpdateTime.lessThen (kUpdateTime)) {
       return;
    }
+   sgtrack.purge (); // periodically drop dissipated smoke clouds (heartbeat, off the hot path)
+
    m_activeGrenades.clear (); // clear previously stored grenades
 
    // need to ignore bomb model in active grenades...

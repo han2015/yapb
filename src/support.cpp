@@ -369,7 +369,12 @@ void BotSupport::setCustomCvarDescriptions () {
 }
 
 bool BotSupport::isLineBlockedBySmoke (const Vector &from, const Vector &to) {
-   if (!gameState.hasActiveGrenades ()) {
+   // deployed smoke clouds are recorded in sgtrack at detonation time (via the
+   // "weapons/sg_*" sound). the original smokegrenade.mdl entity is removed by the
+   // game right after detonation (UTIL_Remove), so we must iterate the recorded
+   // detonation points rather than live grenade entities -- otherwise smoke never
+   // blocked bot vision.
+   if (sgtrack.empty ()) {
       return false;
    }
 
@@ -379,33 +384,17 @@ bool BotSupport::isLineBlockedBySmoke (const Vector &from, const Vector &to) {
    Vector sightDir = to - from;
    const float sightLength = sightDir.normalizeInPlace ();
 
-   for (auto pent : gameState.getActiveGrenades ()) {
-      if (game.isNullEntity (pent)) {
+   const float smokeRadius = cv_smoke_grenade_radius.as <float> ();
+   const float smokeRadiusSq = cr::sqrf (smokeRadius);
+   const float now = game.time ();
+
+   for (const auto &entry : sgtrack.get ()) {
+      // ignore smoke clouds that have already dissipated
+      if (now - entry.time > kSmokeGrenadeLifeTime) {
          continue;
       }
 
-      // check if sgtracked
-      if (!sgtrack.has (pent)) {
-         continue;
-      }
-
-      // need drawn models
-      if (pent->v.effects & EF_NODRAW) {
-         continue;
-      }
-
-      // smoke must be on a ground
-      if (!(pent->v.flags & FL_ONGROUND)) {
-         continue;
-      }
-
-      // must be a smoke grenade
-      if (!game.isEntityModelMatches (pent, kSmokeModelName)) {
-         continue;
-      }
-
-      const float smokeRadiusSq = cr::sqrf (cv_smoke_grenade_radius.as <float> ());
-      const auto &smokeOrigin = sgtrack.find (pent);
+      const Vector &smokeOrigin = entry.pos;
 
       Vector toGrenade = smokeOrigin - from;
       float alongDist = toGrenade | sightDir;
@@ -480,8 +469,8 @@ bool BotSupport::isLineBlockedBySmoke (const Vector &from, const Vector &to) {
       }
    }
 
-   // define how much smoke a bot can see thru
-   const float maxSmokedLength = 0.7f * cv_smoke_grenade_radius.as <float> ();
+   // define how much smoke a bot can see thru (lower factor => smoke blocks more easily)
+   const float maxSmokedLength = 0.4f * smokeRadius;
 
    // return true if the total length of smoke-covered line-of-sight is too much
    return totalSmokedLength > maxSmokedLength;

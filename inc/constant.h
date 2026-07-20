@@ -499,3 +499,6 @@ constexpr auto kPrimaryWeaponMinIndex = 7;
 inline constexpr StringRef kExplosiveModelName = "hegrenade.mdl";
 inline constexpr StringRef kFlashbangModelName = "flashbang.mdl";
 inline constexpr StringRef kSmokeModelName = "smokegrenade.mdl";
+
+// deployed smoke clouds block bot vision for this long after detonation (seconds)
+inline constexpr float kSmokeGrenadeLifeTime = 15.0f;
