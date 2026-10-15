@@ -1963,7 +1963,7 @@ bool Bot::IsLineBlockedBySmoke (const ystl::Vector &from, const ystl::Vector &to
   }
 
   // bots see thru a short smoked stretch
-  return smoked_length > 0.7f * smoke_radius;
+  return smoked_length > 0.35f * smoke_radius;
 }
 
 } // namespace bot
