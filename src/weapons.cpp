@@ -1908,7 +1908,13 @@ void Bot::EnsurePickupEntitiesClear () {
 }
 
 bool Bot::IsLineBlockedBySmoke (const ystl::Vector &from, const ystl::Vector &to) {
-  if (!game_state.HasActiveGrenades ()) {
+  // deployed smoke clouds are recorded in game_state at detonation time (via the
+  // "weapons/sg_explode" sound). the original smokegrenade.mdl entity is removed by
+  // the game right after detonation (UTIL_Remove), so the sight check has to walk the
+  // recorded cloud positions instead of live grenade entities -- keying this on the
+  // live edict (or on its EF_NODRAW / FL_ONGROUND state) is what made smoke never
+  // block bot vision.
+  if (!game_state.HasSmokeClouds ()) {
     return false;
   }
   const ystl::Vector delta = to - from;
@@ -1919,31 +1925,17 @@ bool Bot::IsLineBlockedBySmoke (const ystl::Vector &from, const ystl::Vector &to
   }
   const float smoke_radius = cv_smoke_grenade_radius.As<float> ();
   const float smoke_radius_sq = ystl::sqrf (smoke_radius);
+  const float now = game.Time ();
 
   // sight length covered by smoke clouds
   float smoked_length = 0.0f;
 
-  for (const auto &grenade : game_state.GetActiveGrenades ()) {
-    if (grenade.kind != GrenadeKind::Smoke) {
+  for (const auto &cloud : game_state.GetSmokeClouds ()) {
+    // ignore smoke clouds that have already dissipated
+    if (now - cloud.time > kSmokeGrenadeLifeTime) {
       continue;
     }
-    const auto pent = grenade.ent;
-
-    // empty origin means it has not detonated yet, so no cloud to block sight
-    if (game.IsNullEntity (pent) || grenade.origin.empty ()) {
-      continue;
-    }
-
-    // need drawn models
-    if (pent->v.effects & EF_NODRAW) {
-      continue;
-    }
-
-    // smoke must be on a ground
-    if (!(pent->v.flags & FL_ONGROUND)) {
-      continue;
-    }
-    const auto &smoke_origin = grenade.origin;
+    const auto &smoke_origin = cloud.pos;
 
     // chord of the sight segment inside the smoke sphere
     const ystl::Vector rel = from - smoke_origin;

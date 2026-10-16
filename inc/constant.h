@@ -63,6 +63,7 @@ constexpr auto kSprayDistance = 272.0f;
 constexpr auto kSprayDistanceX2 = kSprayDistance * 2;
 constexpr auto kMaxChatterRepeatInterval = 99.0f;
 constexpr auto kGrenadeDamageRadius = 385.0f;
+constexpr auto kSmokeGrenadeLifeTime = 15.0f; // how long a deployed smoke cloud keeps blocking the sight
 constexpr auto kViewFrameUpdate = 1.0f / 25.0f;
 constexpr auto kMinMovedDistance = ystl::sqrf (2.0f);
 constexpr auto kStuckMaxDuration = 0.75f;

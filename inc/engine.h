@@ -854,6 +854,17 @@ struct ActiveGrenade {
   ystl::Vector origin {}; // smoke detonation point, frozen as the cloud never moves, empty until it pops
 };
 
+// a deployed smoke cloud, recorded at detonation time and expired by its lifetime
+//
+// note: the smokegrenade.mdl entity is removed by the game right after detonation
+// (UTIL_Remove), so a cloud must NOT depend on the live edict (it dangles / may be
+// reused). we store the detonation position with the time it was deployed instead,
+// otherwise smoke never blocks bot vision.
+struct SmokeCloud {
+  ystl::Vector pos {}; // smoke cloud detonation position
+  float time {};       // game time when the smoke was deployed
+};
+
 // hashes an edict by its entity index for the detonation stash
 struct EdictHash {
   uint32_t operator() (const edict_t *key) const noexcept {
@@ -881,6 +892,9 @@ private:
 
   // frozen smoke detonation points, folded onto the grenade record each sweep
   ystl::HashMap<edict_t *, ystl::Vector, EdictHash> smoke_detonations_ {};
+
+  // deployed smoke clouds, outliving their grenade entity and expired by lifetime
+  ystl::Array<SmokeCloud> smoke_clouds_ {};
 
   bool has_breakables_ {}; // set by the sweep below, breakables change rarely
 
@@ -956,6 +970,14 @@ public:
     return !active_grenades_.empty ();
   }
 
+  const ystl::Array<SmokeCloud> &GetSmokeClouds () const {
+    return smoke_clouds_;
+  }
+
+  bool HasSmokeClouds () const {
+    return !smoke_clouds_.empty ();
+  }
+
   bool HasInterestingEntities () const {
     return !interesting_entities_.empty ();
   }
@@ -979,6 +1001,10 @@ public:
 
   // records a smoke detonation point on its grenade, stashing it until the sweep sees it
   void TrackSmokeDetonation (edict_t *ent, const ystl::Vector &pos);
+
+  // drops smoke clouds that have fully dissipated
+  void PurgeSmokeClouds ();
+
   bool IsEarlyRound (const float timestamp) const;
 };
 

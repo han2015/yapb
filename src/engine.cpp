@@ -2138,6 +2138,7 @@ void GameState::RoundStart () {
   interesting_entities_.clear ();
   active_grenades_.clear ();
   smoke_detonations_.clear ();
+  smoke_clouds_.clear ();
 
   active_grenades_update_time_.reset ();
   interesting_entities_update_time_.reset ();
@@ -2174,6 +2175,8 @@ void GameState::UpdateActiveGrenade () {
   if (active_grenades_update_time_.less_than (kUpdateTime)) {
     return;
   }
+  PurgeSmokeClouds (); // drop dissipated clouds on the heartbeat, off the hot path
+
   active_grenades_.clear (); // clear previously stored grenades
 
   // need to ignore bomb model in active grenades
@@ -2213,12 +2216,24 @@ void GameState::UpdateActiveGrenade () {
 void GameState::TrackSmokeDetonation (edict_t *ent, const ystl::Vector &pos) {
   smoke_detonations_[ent] = pos;
 
+  // the cloud outlives its grenade entity, so keep it as a position + timestamp
+  smoke_clouds_.push (SmokeCloud { pos, game.Time () });
+
   for (auto &grenade : active_grenades_) {
     if (grenade.ent == ent) {
       grenade.origin = pos; // keep consumers current before the next sweep
       return;
     }
   }
+}
+
+void GameState::PurgeSmokeClouds () {
+  const float now = game.Time ();
+
+  // keeps the cloud list bounded on long rounds, the sweep heartbeat drives this
+  smoke_clouds_.erase_if ([now] (const SmokeCloud &cloud) {
+    return now - cloud.time > kSmokeGrenadeLifeTime;
+  });
 }
 
 void GameState::UpdateInterestingEntities () {
