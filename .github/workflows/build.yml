@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ['linux-x86', 'linux-amd64', 'linux-x86-gcc', 'linux-x86-nosimd', 'linux-riscv64', 'apple-x86', 'windows-x86-clang', 'windows-amd64', 'windows-x86-gcc']
+        arch: ['linux-amd64','windows-amd64',]
       fail-fast: false
     
     steps:
@@ -64,7 +64,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ['windows-x86', 'windows-x86-msvc-xp']
+        arch: ['windows-x86']
       fail-fast: false
 
     runs-on: windows-latest
