@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ['linux-amd64','windows-amd64',]
+        arch: ['linux-x86']
       fail-fast: false
     
     steps:
